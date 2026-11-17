@@ -140,3 +140,35 @@ def test_report_409_while_running(client: TestClient) -> None:
 def test_stage_progress(status: str, failed_stage: str | None, states: list[str], progress: float) -> None:
     got_progress, stages = stage_progress(status, failed_stage)
     assert [s.state for s in stages] == states and got_progress == progress
+
+
+def test_runner_limits_concurrency(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """With max_concurrent=1, jobs run one at a time and the others wait (stay queued)."""
+    import contextlib
+    import threading
+    import time
+
+    from api.jobs import JobRunner
+    from pipeline import run
+
+    active, peak, lock = 0, 0, threading.Lock()
+
+    def fake_run(conn, job_id, video, **_):
+        nonlocal active, peak
+        with lock:
+            active += 1
+            peak = max(peak, active)
+        time.sleep(0.05)
+        with lock:
+            active -= 1
+
+    monkeypatch.setattr(run, "run_with_db", fake_run)
+    pool = type("FakePool", (), {"connection": lambda self: contextlib.nullcontext()})()
+    runner = JobRunner(pool, tmp_path, max_concurrent=1)
+    threads = [threading.Thread(target=runner.process, args=(f"j{i}", tmp_path / f"u{i}" / "v.mp4"))
+               for i in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert peak == 1
