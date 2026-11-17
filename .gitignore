@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+web/dist/
+*.log
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Data / artifacts
+samples/
+output/
+uploads/
+*.mp4
+*.mov
+*.avi
+*.mkv
+
+# Model weights
+*.pt
+*.onnx
+*.engine
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
