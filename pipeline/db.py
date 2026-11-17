@@ -13,7 +13,7 @@ from psycopg.types.json import Jsonb
 
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "db" / "schema.sql"
 JOB_STATUSES = ("queued", "ingesting", "keyframes", "detecting", "reporting", "done", "failed")
-_UPDATABLE = {"status", "error", "meta", "sampling", "timings"}
+_UPDATABLE = {"status", "error", "failed_stage", "meta", "sampling", "timings"}
 _JSON_COLUMNS = {"meta", "sampling", "timings"}
 
 

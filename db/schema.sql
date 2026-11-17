@@ -13,6 +13,9 @@ CREATE TABLE IF NOT EXISTS jobs (
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Added in Phase 3; ALTER keeps existing databases in sync.
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS failed_stage TEXT;
+
 CREATE TABLE IF NOT EXISTS events (
     id           BIGSERIAL PRIMARY KEY,
     job_id       TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,

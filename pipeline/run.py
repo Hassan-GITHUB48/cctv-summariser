@@ -114,12 +114,18 @@ def run_with_db(
     """
     if create_job:
         db.create_job(conn, job_id, str(video))
+    current = {"stage": None}
+
+    def on_status(stage: str) -> None:
+        current["stage"] = stage
+        db.update_job(conn, job_id, status=stage)
+
     try:
-        result = run_pipeline(
-            video, job_id=job_id, on_status=lambda s: db.update_job(conn, job_id, status=s), **kwargs
-        )
+        result = run_pipeline(video, job_id=job_id, on_status=on_status, **kwargs)
     except Exception as exc:
-        db.update_job(conn, job_id, status="failed", error=f"{type(exc).__name__}: {exc}")
+        db.update_job(
+            conn, job_id, status="failed", error=f"{type(exc).__name__}: {exc}", failed_stage=current["stage"]
+        )
         raise
     db.insert_events(conn, job_id, result["events"])
     if rep := result["report"]:
