@@ -46,8 +46,10 @@ def bus_clip(tmp_path_factory: pytest.TempPathFactory) -> Path:
 @pytest.fixture
 def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
-    monkeypatch.setattr(report, "generate_report",
-                        lambda cands, *a, **k: (IncidentReport(summary=f"{len(cands)} candidates", incidents=[]), "fake"))
+    def fake_report(cands, *args, **kwargs):
+        return IncidentReport(summary=f"{len(cands)} candidates", incidents=[]), "fake"
+
+    monkeypatch.setattr(report, "generate_report", fake_report)
     settings = Settings(database_url=DB_URL, output_dir=tmp_path / "out", upload_dir=tmp_path / "up", max_upload_mb=50)
     with TestClient(create_app(settings)) as c:  # `with` runs the lifespan (pool, schema)
         yield c

@@ -6,7 +6,7 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from pipeline import db, report
+from pipeline import db, ingest, report
 from pipeline.report import IncidentReport
 from pipeline.run import run_pipeline, run_with_db
 
@@ -71,7 +71,7 @@ def test_run_with_db_marks_failed(tmp_path: Path) -> None:
         pytest.skip("Postgres not reachable")
     job_id = f"test-{uuid.uuid4().hex[:8]}"
     try:
-        with pytest.raises(Exception):
+        with pytest.raises(ingest.IngestError):
             run_with_db(conn, job_id, tmp_path / "missing.mp4", out_root=tmp_path, with_report=False)
         job = db.get_job(conn, job_id)
         assert job["status"] == "failed" and "not found" in job["error"]

@@ -12,10 +12,10 @@ import logging
 import time
 import uuid
 from collections import Counter
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Iterator
 
 import psycopg
 from dotenv import load_dotenv

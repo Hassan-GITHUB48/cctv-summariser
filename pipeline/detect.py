@@ -6,7 +6,6 @@ import logging
 import os
 from dataclasses import asdict, dataclass
 from functools import lru_cache
-from pathlib import Path
 
 from ultralytics import YOLO
 
@@ -60,7 +59,7 @@ def detect(
         conf=conf, classes=class_ids, device=device, stream=True, verbose=False,
     )
     events: list[Event] = []
-    for kf, result in zip(keyframes, results):
+    for kf, result in zip(keyframes, results, strict=True):  # one result per input frame
         for box in result.boxes:
             x1, y1, x2, y2 = (int(v) for v in box.xyxy[0].tolist())
             events.append(Event(

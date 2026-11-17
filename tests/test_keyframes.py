@@ -1,4 +1,5 @@
 import shutil
+from itertools import pairwise
 from pathlib import Path
 
 import pytest
@@ -27,7 +28,7 @@ def test_interval_indices_math() -> None:
 
 def _max_gap_with_edges(indices: list[int], frame_count: int) -> int:
     points = [-1, *indices, frame_count]  # gaps from the start/end of the video count too
-    return max(b - a - 1 for a, b in zip(points, points[1:]))
+    return max(b - a - 1 for a, b in pairwise(points))
 
 
 @pytest.mark.parametrize(
@@ -52,7 +53,7 @@ def test_hybrid_mode_adds_frames_between_scenes(synthetic_clip: Path, tmp_path: 
     indices = [f.frame_index for f in frames]
     assert {50, 150, 250} <= set(indices)  # scene midpoints are kept
     assert len(indices) > 3
-    assert max(b - a for a, b in zip(indices, indices[1:])) <= 75  # 3 s at 25 fps
+    assert max(b - a for a, b in pairwise(indices)) <= 75  # 3 s at 25 fps
 
 
 def test_invalid_inputs_raise(synthetic_clip: Path, tmp_path: Path) -> None:

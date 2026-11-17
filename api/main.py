@@ -87,9 +87,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         request: Request,
         background: BackgroundTasks,
         conn: Conn,
-        video: UploadFile = File(..., description="CCTV clip (mp4, mov, avi, mkv, webm)"),
-        sampling: Literal["hybrid", "scene", "interval"] = Form("hybrid"),
-        start_time: datetime | None = Form(None, description="Wall-clock recording start, ISO 8601"),
+        video: Annotated[UploadFile, File(description="CCTV clip (mp4, mov, avi, mkv, webm)")],
+        sampling: Annotated[Literal["hybrid", "scene", "interval"], Form()] = "hybrid",
+        start_time: Annotated[datetime | None, Form(description="Wall-clock recording start, ISO 8601")] = None,
     ) -> JobCreated:
         """Upload a video and queue it for processing. Poll ``GET /jobs/{id}`` for progress."""
         ext = Path(video.filename or "").suffix.lower()
