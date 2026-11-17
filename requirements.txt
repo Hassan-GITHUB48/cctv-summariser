@@ -3,5 +3,11 @@ ultralytics>=8.4,<9
 scenedetect>=0.7,<0.8
 opencv-python-headless>=4.10
 
+# Storage + LLM report
+psycopg[binary]>=3.2,<4
+anthropic>=2.9,<3
+pydantic>=2.7,<3
+python-dotenv>=1.0
+
 # Dev
 pytest>=8
