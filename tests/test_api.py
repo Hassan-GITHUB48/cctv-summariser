@@ -102,6 +102,9 @@ def test_full_job_flow(client: TestClient, bus_clip: Path) -> None:
     frame = client.get(events[0]["frame_url"])
     assert frame.status_code == 200 and frame.headers["content-type"] == "image/jpeg"
 
+    listed = client.get("/jobs", params={"limit": 100}).json()
+    assert any(j["job_id"] == job_id and j["status"] == "done" for j in listed)
+
     rep = client.get(f"/jobs/{job_id}/report").json()
     assert rep["model"] == "fake" and rep["summary"].endswith("candidates")
 

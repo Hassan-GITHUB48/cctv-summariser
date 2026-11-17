@@ -16,7 +16,7 @@ from typing import Annotated, Literal
 
 import psycopg
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi import Path as PathParam
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -25,7 +25,7 @@ from psycopg_pool import ConnectionPool
 
 from api.config import Settings
 from api.jobs import ALLOWED_EXTENSIONS, JobRunner, UploadTooLarge, save_upload, stage_progress
-from api.schemas import EventOut, JobCreated, JobStatus, ReportOut
+from api.schemas import EventOut, JobCreated, JobStatus, JobSummary, ReportOut
 from pipeline import db, ingest
 
 log = logging.getLogger(__name__)
@@ -112,6 +112,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             request.app.state.runner.process, job_id, dst, sampling=sampling, recording_start=start_time
         )
         return JobCreated(job_id=job_id, status="queued")
+
+    @app.get("/jobs", response_model=list[JobSummary])
+    def list_jobs(conn: Conn, limit: Annotated[int, Query(ge=1, le=100)] = 20) -> list[JobSummary]:
+        """Most recent jobs first."""
+        return [JobSummary(job_id=j.pop("id"), **j) for j in db.list_jobs(conn, limit)]
 
     @app.get("/jobs/{job_id}", response_model=JobStatus)
     def get_job(job_id: JobId, conn: Conn) -> JobStatus:

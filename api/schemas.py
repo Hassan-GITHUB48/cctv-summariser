@@ -17,6 +17,15 @@ class JobCreated(BaseModel):
     status: str
 
 
+class JobSummary(BaseModel):
+    job_id: str
+    source: str
+    status: str
+    incident_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
 class Stage(BaseModel):
     name: Literal["ingesting", "keyframes", "detecting", "reporting"]
     state: StageState

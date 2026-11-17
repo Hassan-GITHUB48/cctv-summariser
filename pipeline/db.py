@@ -103,6 +103,17 @@ def get_job(conn: psycopg.Connection, job_id: str) -> dict | None:
     return conn.execute("SELECT * FROM jobs WHERE id = %s", (job_id,)).fetchone()
 
 
+def list_jobs(conn: psycopg.Connection, limit: int = 20) -> list[dict]:
+    """Most recent jobs first, with their incident count (0 when there is no report)."""
+    return conn.execute(
+        "SELECT j.id, j.source, j.status, j.created_at, j.updated_at,"
+        " COALESCE(jsonb_array_length(r.incidents), 0) AS incident_count"
+        " FROM jobs j LEFT JOIN reports r ON r.job_id = j.id"
+        " ORDER BY j.created_at DESC LIMIT %s",
+        (limit,),
+    ).fetchall()
+
+
 def get_events(conn: psycopg.Connection, job_id: str) -> list[dict]:
     """Return a job's events ordered by time."""
     return conn.execute(
