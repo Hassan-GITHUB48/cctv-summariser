@@ -1,0 +1,47 @@
+@import 'tailwindcss';
+
+/* Design tokens. Dark-only by design: an operations console is used in dim rooms. */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --color-bg: #0d0e10;
+  --color-panel: #15171a;
+  --color-panel-2: #1b1e22;
+  --color-line: #262a30;
+  --color-line-strong: #353a42;
+  --color-ink: #e6e8eb;
+  --color-ink-2: #a8aeb7;
+  --color-ink-3: #6f7681;
+
+  /* Object classes: validated categorical slots (dark), fixed order, never by rank */
+  --color-cls-person: #3987e5;
+  --color-cls-car: #d95926;
+  --color-cls-truck: #199e70;
+  --color-cls-motorcycle: #c98500;
+  --color-cls-bicycle: #d55181;
+
+  /* Status: reserved meaning, always shown with a label */
+  --color-good: #0ca30c;
+  --color-warning: #fab219;
+  --color-serious: #ec835a;
+  --color-critical: #d03b3b;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    font-size: 14px;
+  }
+  ::selection {
+    @apply bg-cls-person/40;
+  }
+}
+
+/* Small uppercase section label used throughout the console */
+@utility eyebrow {
+  @apply font-mono text-[11px] tracking-[0.08em] uppercase text-ink-3;
+}
