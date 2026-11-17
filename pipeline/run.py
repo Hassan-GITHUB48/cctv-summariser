@@ -12,10 +12,10 @@ import logging
 import time
 import uuid
 from collections import Counter
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Iterator
 
 import psycopg
 from dotenv import load_dotenv
@@ -68,9 +68,7 @@ def run_pipeline(
         normalised = ingest.transcode(video, job_dir / "normalised.mp4")
     status("keyframes")
     with timed(timings, "keyframes"):
-        frames = keyframes.extract(
-            normalised, job_dir / "frames", sampling, interval_s=interval_s, max_gap_s=max_gap_s
-        )
+        frames = keyframes.extract(normalised, job_dir / "frames", sampling, interval_s=interval_s, max_gap_s=max_gap_s)
     status("detecting")
     with timed(timings, "detect"):
         events = [e.to_dict() for e in detect.detect(frames, conf=conf, device=device)]
@@ -104,9 +102,7 @@ def run_pipeline(
     return result
 
 
-def run_with_db(
-    conn: psycopg.Connection, job_id: str, video: Path, create_job: bool = True, **kwargs
-) -> dict:
+def run_with_db(conn: psycopg.Connection, job_id: str, video: Path, create_job: bool = True, **kwargs) -> dict:
     """Run the pipeline as a tracked job: status updates, then events and report persisted.
 
     Pass ``create_job=False`` when the job row already exists (e.g. created by the API).
@@ -131,8 +127,12 @@ def run_with_db(
     if rep := result["report"]:
         db.save_report(conn, job_id, rep["model"], rep["summary"], rep["incidents"])
     db.update_job(
-        conn, job_id, status="done", meta=result["source_meta"],
-        sampling=result["sampling"], timings=result["timings_s"],
+        conn,
+        job_id,
+        status="done",
+        meta=result["source_meta"],
+        sampling=result["sampling"],
+        timings=result["timings_s"],
     )
     return result
 
@@ -147,20 +147,31 @@ def print_summary(result: dict, out_root: Path) -> None:
     counts = Counter(e["label"] for e in result["events"])
     frames_with_hits = len({e["frame_index"] for e in result["events"]})
     print(f"\nJob {result['job_id']}  ({result['source']})")
-    print(f"  Source:     {meta['width']}x{meta['height']} {meta['codec']} "
-          f"@ {meta['fps']:g} fps, {meta['duration_s']:.1f}s")
-    print(f"  Sampling:   {result['sampling']['mode']} -> {len(result['keyframes'])} keyframes "
-          f"({frames_with_hits} with detections)")
-    print(f"  Detections ({len(result['events'])}): "
-          + (", ".join(f"{label}={n}" for label, n in counts.most_common()) or "none"))
+    print(
+        f"  Source:     {meta['width']}x{meta['height']} {meta['codec']} "
+        f"@ {meta['fps']:g} fps, {meta['duration_s']:.1f}s"
+    )
+    print(
+        f"  Sampling:   {result['sampling']['mode']} -> {len(result['keyframes'])} keyframes "
+        f"({frames_with_hits} with detections)"
+    )
+    print(
+        f"  Detections ({len(result['events'])}): "
+        + (", ".join(f"{label}={n}" for label, n in counts.most_common()) or "none")
+    )
     print(f"  Candidates: {len(result['candidates'])}")
-    print("  Timings:    " + ", ".join(f"{k} {v:.2f}s" for k, v in result["timings_s"].items())
-          + f" (total {sum(result['timings_s'].values()):.2f}s)")
+    print(
+        "  Timings:    "
+        + ", ".join(f"{k} {v:.2f}s" for k, v in result["timings_s"].items())
+        + f" (total {sum(result['timings_s'].values()):.2f}s)"
+    )
     if rep := result["report"]:
         print(f"\n  Report ({rep['model']}): {rep['summary']}")
         for inc in rep["incidents"]:
-            print(f"   [sev {inc['severity']}] {_mmss(inc['start_s'])}-{_mmss(inc['end_s'])} "
-                  f"{inc['title']} -> {inc['recommended_action']}")
+            print(
+                f"   [sev {inc['severity']}] {_mmss(inc['start_s'])}-{_mmss(inc['end_s'])} "
+                f"{inc['title']} -> {inc['recommended_action']}"
+            )
     print(f"\n  Output:     {out_root / result['job_id'] / 'events.json'}\n")
 
 
@@ -173,8 +184,12 @@ def main() -> None:
     parser.add_argument("--max-gap", type=float, default=2.0, help="max seconds between frames (hybrid mode)")
     parser.add_argument("--conf", type=float, default=0.4, help="detection confidence threshold")
     parser.add_argument("--device", default=None, help="torch device, e.g. cpu or mps (default: auto)")
-    parser.add_argument("--start-time", type=datetime.fromisoformat, default=None,
-                        help="wall-clock recording start (ISO 8601), enables unusual-hour flags")
+    parser.add_argument(
+        "--start-time",
+        type=datetime.fromisoformat,
+        default=None,
+        help="wall-clock recording start (ISO 8601), enables unusual-hour flags",
+    )
     parser.add_argument("--no-report", action="store_true", help="skip the LLM report stage")
     parser.add_argument("--no-db", action="store_true", help="don't store results in Postgres")
     parser.add_argument("--out", type=Path, default=Path("output"))
@@ -184,8 +199,14 @@ def main() -> None:
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     logging.getLogger("pyscenedetect").setLevel(args.log_level.upper())  # it logs INFO by default
     kwargs = dict(
-        out_root=args.out, sampling=args.sampling, interval_s=args.interval, max_gap_s=args.max_gap,
-        conf=args.conf, device=args.device, recording_start=args.start_time, with_report=not args.no_report,
+        out_root=args.out,
+        sampling=args.sampling,
+        interval_s=args.interval,
+        max_gap_s=args.max_gap,
+        conf=args.conf,
+        device=args.device,
+        recording_start=args.start_time,
+        with_report=not args.no_report,
     )
     job_id = uuid.uuid4().hex[:8]
     try:

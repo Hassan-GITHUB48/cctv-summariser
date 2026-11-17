@@ -53,7 +53,7 @@ def stage_progress(status: str, failed_stage: str | None = None) -> tuple[float,
     current = STAGES.index(failed_stage if status == "failed" else status)
     here = "failed" if status == "failed" else "running"
     states = ["done"] * current + [here] + ["pending"] * (len(STAGES) - current - 1)
-    return round(current / len(STAGES), 2), [Stage(name=s, state=st) for s, st in zip(STAGES, states)]
+    return round(current / len(STAGES), 2), [Stage(name=s, state=st) for s, st in zip(STAGES, states, strict=True)]
 
 
 class JobRunner:

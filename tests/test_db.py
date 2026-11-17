@@ -32,8 +32,14 @@ def job_id(conn: psycopg.Connection) -> Iterator[str]:
     conn.commit()
 
 
-EVENT = {"timestamp_s": 2.0, "frame_index": 24, "label": "person", "confidence": 0.87,
-         "bbox": (10, 20, 110, 220), "frame_path": "output/x/frames/frame_000024.jpg"}
+EVENT = {
+    "timestamp_s": 2.0,
+    "frame_index": 24,
+    "label": "person",
+    "confidence": 0.87,
+    "bbox": (10, 20, 110, 220),
+    "frame_path": "output/x/frames/frame_000024.jpg",
+}
 
 
 def test_job_lifecycle(conn: psycopg.Connection, job_id: str) -> None:

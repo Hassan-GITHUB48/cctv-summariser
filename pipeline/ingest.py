@@ -44,10 +44,18 @@ def probe(path: Path) -> VideoMeta:
     """Return metadata for the first video stream in ``path`` using ffprobe."""
     if not path.exists():
         raise IngestError(f"File not found: {path}")
-    proc = _run([
-        "ffprobe", "-v", "error", "-print_format", "json",
-        "-show_streams", "-show_format", str(path),
-    ])
+    proc = _run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-print_format",
+            "json",
+            "-show_streams",
+            "-show_format",
+            str(path),
+        ]
+    )
     info = json.loads(proc.stdout)
     video = next((s for s in info.get("streams", []) if s.get("codec_type") == "video"), None)
     if video is None:
@@ -74,12 +82,29 @@ def transcode(src: Path, dst: Path, height: int = 720) -> Path:
     browsers can start playback before the whole file downloads.
     """
     dst.parent.mkdir(parents=True, exist_ok=True)
-    _run([
-        "ffmpeg", "-y", "-loglevel", "error", "-i", str(src),
-        "-vf", f"scale=-2:'min({height},ih)'",
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
-        "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an",
-        str(dst),
-    ])
+    _run(
+        [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-i",
+            str(src),
+            "-vf",
+            f"scale=-2:'min({height},ih)'",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "23",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            "-an",
+            str(dst),
+        ]
+    )
     log.info("Transcoded %s -> %s", src, dst)
     return dst

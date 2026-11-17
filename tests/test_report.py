@@ -12,9 +12,20 @@ META = {"duration_s": 60.0}
 SAMPLING = {"mode": "hybrid", "max_gap_s": 2.0}
 CANDS = [Candidate("C1", "person", 10.0, 44.0, 18, 1, 0.9, "f.jpg", ["prolonged_presence"])]
 
-GOOD = {"summary": "One person stayed for 34 seconds.", "incidents": [{
-    "start_s": 10, "end_s": 44, "title": "Person loitering", "description": "A person remained in view.",
-    "severity": 3, "recommended_action": "Review footage 00:10-00:44", "candidate_ids": ["C1"]}]}
+GOOD = {
+    "summary": "One person stayed for 34 seconds.",
+    "incidents": [
+        {
+            "start_s": 10,
+            "end_s": 44,
+            "title": "Person loitering",
+            "description": "A person remained in view.",
+            "severity": 3,
+            "recommended_action": "Review footage 00:10-00:44",
+            "candidate_ids": ["C1"],
+        }
+    ],
+}
 
 
 class FakeClient:

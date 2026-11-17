@@ -6,7 +6,6 @@ import logging
 import os
 from dataclasses import asdict, dataclass
 from functools import lru_cache
-from pathlib import Path
 
 from ultralytics import YOLO
 
@@ -57,19 +56,25 @@ def detect(
     class_ids = [i for i, name in model.names.items() if name in TARGET_CLASSES]
     results = model.predict(
         [str(k.path) for k in keyframes],
-        conf=conf, classes=class_ids, device=device, stream=True, verbose=False,
+        conf=conf,
+        classes=class_ids,
+        device=device,
+        stream=True,
+        verbose=False,
     )
     events: list[Event] = []
-    for kf, result in zip(keyframes, results):
+    for kf, result in zip(keyframes, results, strict=True):  # one result per input frame
         for box in result.boxes:
             x1, y1, x2, y2 = (int(v) for v in box.xyxy[0].tolist())
-            events.append(Event(
-                timestamp_s=kf.timestamp_s,
-                frame_index=kf.frame_index,
-                label=model.names[int(box.cls)],
-                confidence=round(float(box.conf), 3),
-                bbox=(x1, y1, x2, y2),
-                frame_path=str(kf.path),
-            ))
+            events.append(
+                Event(
+                    timestamp_s=kf.timestamp_s,
+                    frame_index=kf.frame_index,
+                    label=model.names[int(box.cls)],
+                    confidence=round(float(box.conf), 3),
+                    bbox=(x1, y1, x2, y2),
+                    frame_path=str(kf.path),
+                )
+            )
     log.info("Found %d detections on %d keyframes", len(events), len(keyframes))
     return sorted(events, key=lambda e: (e.timestamp_s, -e.confidence))
