@@ -119,11 +119,13 @@ def generate_report(
 
     Returns the validated report and the model name used.
     """
-    model = model or os.getenv("ANTHROPIC_MODEL", "claude-opus-5-5")
+    model = model or os.getenv("ANTHROPIC_MODEL", "claude-sonnet-5-5")
     if not candidates:  # nothing to analyse: skip the API call entirely
         return IncidentReport(summary="No people or vehicles were detected in the footage.", incidents=[]), model
 
-    client = client or anthropic.Anthropic()
+    if client is None:
+        check_credentials()
+        client = anthropic.Anthropic()
     prompt = "Candidate incidents (JSON):\n" + json.dumps(build_payload(candidates, meta, sampling), indent=1)
     error: Exception | None = None
     for attempt in (1, 2):
