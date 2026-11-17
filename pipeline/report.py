@@ -61,6 +61,12 @@ class ReportError(RuntimeError):
     """Raised when a valid report could not be produced."""
 
 
+def check_credentials() -> None:
+    """Fail fast, before any video work, if no Anthropic credentials are configured."""
+    if not (os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN")):
+        raise ReportError("ANTHROPIC_API_KEY is not set (copy .env.example to .env), or use --no-report")
+
+
 def build_payload(candidates: list[Candidate], meta: dict, sampling: dict) -> dict:
     """Compact, structured summary sent to the LLM (no images, no raw detections)."""
     return {
