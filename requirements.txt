@@ -1,0 +1,7 @@
+# Pipeline
+ultralytics>=8.4,<9
+scenedetect>=0.7,<0.8
+opencv-python-headless>=4.10
+
+# Dev
+pytest>=8
