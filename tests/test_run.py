@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import uuid
 from pathlib import Path
@@ -11,7 +12,7 @@ from pipeline.report import IncidentReport
 from pipeline.run import run_pipeline, run_with_db
 
 pytestmark = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg not installed")
-DB_URL = "postgresql://cctv:cctv@localhost:5433/cctv"
+DB_URL = os.environ.get("DATABASE_URL", "postgresql://cctv:cctv@localhost:5433/cctv")
 
 
 @pytest.fixture
@@ -25,6 +26,7 @@ def fake_report(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
 
+@pytest.mark.yolo
 @pytest.mark.parametrize(("sampling", "n_frames"), [("scene", 3), ("interval", 6), ("hybrid", 6)])
 def test_pipeline_writes_events_json(synthetic_clip: Path, tmp_path: Path, sampling: str, n_frames: int) -> None:
     result = run_pipeline(synthetic_clip, out_root=tmp_path, sampling=sampling, job_id="job1", with_report=False)
@@ -39,6 +41,7 @@ def test_pipeline_writes_events_json(synthetic_clip: Path, tmp_path: Path, sampl
     assert result["report"] is None
 
 
+@pytest.mark.yolo
 def test_pipeline_reports_status_and_report(synthetic_clip: Path, tmp_path: Path, fake_report: None) -> None:
     seen: list[str] = []
     result = run_pipeline(synthetic_clip, out_root=tmp_path, on_status=seen.append)
@@ -47,6 +50,7 @@ def test_pipeline_reports_status_and_report(synthetic_clip: Path, tmp_path: Path
     assert "report" in result["timings_s"]
 
 
+@pytest.mark.yolo
 def test_run_with_db_persists_job(synthetic_clip: Path, tmp_path: Path, fake_report: None) -> None:
     try:
         conn = db.connect(DB_URL)

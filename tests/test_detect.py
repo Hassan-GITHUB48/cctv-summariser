@@ -7,6 +7,8 @@ import ultralytics
 from pipeline.detect import TARGET_CLASSES, detect
 from pipeline.keyframes import Keyframe
 
+pytestmark = pytest.mark.yolo
+
 BUS = Path(ultralytics.__file__).parent / "assets" / "bus.jpg"  # bundled image: people + a bus
 
 

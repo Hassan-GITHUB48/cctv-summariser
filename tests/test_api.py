@@ -1,5 +1,6 @@
 """API tests: real Postgres (skipped if unreachable), real pipeline, fake LLM."""
 
+import os
 import shutil
 import subprocess
 import uuid
@@ -17,7 +18,7 @@ from api.main import create_app
 from pipeline import db, report
 from pipeline.report import IncidentReport
 
-DB_URL = "postgresql://cctv:cctv@localhost:5433/cctv"
+DB_URL = os.environ.get("DATABASE_URL", "postgresql://cctv:cctv@localhost:5433/cctv")
 BUS = Path(ultralytics.__file__).parent / "assets" / "bus.jpg"
 
 
@@ -84,6 +85,7 @@ def upload(client: TestClient, path: Path, name: str | None = None) -> "object":
 
 
 @needs_stack
+@pytest.mark.yolo
 def test_full_job_flow(client: TestClient, bus_clip: Path) -> None:
     resp = upload(client, bus_clip)
     assert resp.status_code == 202 and resp.json()["status"] == "queued"
