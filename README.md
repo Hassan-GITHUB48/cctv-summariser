@@ -19,4 +19,5 @@ make setup      # venv + dependencies + .env
 make test       # starts Postgres, runs pytest (make test-fast skips YOLO tests)
 make lint       # ruff, same checks as CI
 make run        # API on http://localhost:8000/docs
+make web        # dashboard on http://localhost:5173 (in a second terminal)
 ```
