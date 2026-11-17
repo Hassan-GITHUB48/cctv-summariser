@@ -13,7 +13,7 @@ from psycopg.types.json import Jsonb
 
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "db" / "schema.sql"
 JOB_STATUSES = ("queued", "ingesting", "keyframes", "detecting", "reporting", "done", "failed")
-_UPDATABLE = {"status", "error", "meta", "sampling", "timings"}
+_UPDATABLE = {"status", "error", "failed_stage", "meta", "sampling", "timings"}
 _JSON_COLUMNS = {"meta", "sampling", "timings"}
 
 
@@ -53,6 +53,16 @@ def update_job(conn: psycopg.Connection, job_id: str, **fields: Any) -> None:
         [*values, job_id],
     )
     conn.commit()
+
+
+def fail_interrupted_jobs(conn: psycopg.Connection) -> int:
+    """Mark jobs left mid-pipeline (e.g. by a server restart) as failed; returns how many."""
+    cur = conn.execute(
+        "UPDATE jobs SET status = 'failed', error = 'Interrupted by server restart', updated_at = now()"
+        " WHERE status NOT IN ('done', 'failed')"
+    )
+    conn.commit()
+    return cur.rowcount
 
 
 def insert_events(conn: psycopg.Connection, job_id: str, events: list[dict]) -> int:
