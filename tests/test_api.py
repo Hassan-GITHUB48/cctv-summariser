@@ -75,13 +75,22 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
     settings = Settings(database_url=DB_URL, output_dir=tmp_path / "out", upload_dir=tmp_path / "up", max_upload_mb=50)
     with TestClient(create_app(settings)) as c:  # `with` runs the lifespan (pool, schema)
         yield c
+    with psycopg.connect(DB_URL) as conn:
+        conn.execute("DELETE FROM jobs WHERE id = ANY(%s)", (_created_jobs,))
+    _created_jobs.clear()
+
+
+_created_jobs: list[str] = []  # deleted by the client fixture so tests don't litter the dev database
 
 
 def upload(client: TestClient, path: Path, name: str | None = None) -> "object":
     with path.open("rb") as f:
-        return client.post(
+        resp = client.post(
             "/jobs", files={"video": (name or path.name, f, "video/mp4")}, data={"start_time": "2026-11-16T23:30:00"}
         )
+    if resp.status_code == 202:
+        _created_jobs.append(resp.json()["job_id"])
+    return resp
 
 
 @needs_stack
