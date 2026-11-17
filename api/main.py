@@ -53,8 +53,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        pool = ConnectionPool(settings.database_url, min_size=1, max_size=10,
-                              kwargs={"row_factory": dict_row}, open=True)
+        pool = ConnectionPool(
+            settings.database_url, min_size=1, max_size=10, kwargs={"row_factory": dict_row}, open=True
+        )
         with pool.connection() as conn:
             db.init_schema(conn)
             if n := db.fail_interrupted_jobs(conn):
@@ -107,8 +108,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(422, f"Not a readable video: {exc}") from exc
 
         db.create_job(conn, job_id, video.filename or dst.name)
-        background.add_task(request.app.state.runner.process, job_id, dst,
-                            sampling=sampling, recording_start=start_time)
+        background.add_task(
+            request.app.state.runner.process, job_id, dst, sampling=sampling, recording_start=start_time
+        )
         return JobCreated(job_id=job_id, status="queued")
 
     @app.get("/jobs/{job_id}", response_model=JobStatus)
@@ -116,9 +118,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """Job status with per-stage progress."""
         job = require_job(conn, job_id)
         progress, stages = stage_progress(job["status"], job["failed_stage"])
-        return JobStatus(job_id=job["id"], progress=progress, stages=stages,
-                         **{k: job[k] for k in ("source", "status", "error", "failed_stage", "meta",
-                                                "sampling", "timings", "created_at", "updated_at")})
+        return JobStatus(
+            job_id=job["id"],
+            progress=progress,
+            stages=stages,
+            **{
+                k: job[k]
+                for k in (
+                    "source",
+                    "status",
+                    "error",
+                    "failed_stage",
+                    "meta",
+                    "sampling",
+                    "timings",
+                    "created_at",
+                    "updated_at",
+                )
+            },
+        )
 
     @app.get("/jobs/{job_id}/events", response_model=list[EventOut])
     def get_events(job_id: JobId, conn: Conn) -> list[EventOut]:

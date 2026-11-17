@@ -32,9 +32,20 @@ def make_sample(dst: Path, segment_s: float = 4.0) -> Path:
         "[a][b][c]concat=n=3:v=1:a=0[out]"
     )
     cmd = [
-        "ffmpeg", "-y", "-loglevel", "error",
-        "-filter_complex", graph, "-map", "[out]",
-        "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
+        "ffmpeg",
+        "-y",
+        "-loglevel",
+        "error",
+        "-filter_complex",
+        graph,
+        "-map",
+        "[out]",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "ultrafast",
+        "-pix_fmt",
+        "yuv420p",
         str(dst),
     ]
     subprocess.run(cmd, check=True)

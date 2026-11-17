@@ -4,8 +4,14 @@ from pipeline.incidents import group_events
 
 
 def ev(t: float, label: str = "person", conf: float = 0.8) -> dict:
-    return {"timestamp_s": t, "frame_index": int(t * 10), "label": label, "confidence": conf,
-            "bbox": (0, 0, 10, 10), "frame_path": f"frames/{t}.jpg"}
+    return {
+        "timestamp_s": t,
+        "frame_index": int(t * 10),
+        "label": label,
+        "confidence": conf,
+        "bbox": (0, 0, 10, 10),
+        "frame_path": f"frames/{t}.jpg",
+    }
 
 
 def test_merges_close_sightings_and_splits_on_gaps() -> None:

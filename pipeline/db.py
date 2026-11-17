@@ -44,9 +44,7 @@ def update_job(conn: psycopg.Connection, job_id: str, **fields: Any) -> None:
         raise ValueError(f"Cannot update job columns: {sorted(unknown)}")
     if fields.get("status") not in (None, *JOB_STATUSES):
         raise ValueError(f"Invalid status: {fields['status']}")
-    assignments = sql.SQL(", ").join(
-        sql.SQL("{} = %s").format(sql.Identifier(col)) for col in fields
-    )
+    assignments = sql.SQL(", ").join(sql.SQL("{} = %s").format(sql.Identifier(col)) for col in fields)
     values = [Jsonb(v) if col in _JSON_COLUMNS else v for col, v in fields.items()]
     conn.execute(
         sql.SQL("UPDATE jobs SET {}, updated_at = now() WHERE id = %s").format(assignments),
@@ -73,15 +71,23 @@ def insert_events(conn: psycopg.Connection, job_id: str, events: list[dict]) -> 
             cur.executemany(
                 "INSERT INTO events (job_id, timestamp_s, frame_index, label, confidence, bbox, frame_path)"
                 " VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                [(job_id, e["timestamp_s"], e["frame_index"], e["label"], e["confidence"],
-                  list(e["bbox"]), e["frame_path"]) for e in events],
+                [
+                    (
+                        job_id,
+                        e["timestamp_s"],
+                        e["frame_index"],
+                        e["label"],
+                        e["confidence"],
+                        list(e["bbox"]),
+                        e["frame_path"],
+                    )
+                    for e in events
+                ],
             )
     return len(events)
 
 
-def save_report(
-    conn: psycopg.Connection, job_id: str, model: str, summary: str, incidents: list[dict]
-) -> None:
+def save_report(conn: psycopg.Connection, job_id: str, model: str, summary: str, incidents: list[dict]) -> None:
     """Insert or replace the report for ``job_id``."""
     conn.execute(
         "INSERT INTO reports (job_id, model, summary, incidents) VALUES (%s, %s, %s, %s)"

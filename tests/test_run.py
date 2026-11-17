@@ -17,16 +17,16 @@ DB_URL = "postgresql://cctv:cctv@localhost:5433/cctv"
 @pytest.fixture
 def fake_report(monkeypatch: pytest.MonkeyPatch) -> None:
     """Replace the LLM call so tests never hit the API."""
+
     def fake(candidates, meta, sampling, **_):
         return IncidentReport(summary="fake", incidents=[]), "fake-model"
+
     monkeypatch.setattr(report, "generate_report", fake)
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
 
 @pytest.mark.parametrize(("sampling", "n_frames"), [("scene", 3), ("interval", 6), ("hybrid", 6)])
-def test_pipeline_writes_events_json(
-    synthetic_clip: Path, tmp_path: Path, sampling: str, n_frames: int
-) -> None:
+def test_pipeline_writes_events_json(synthetic_clip: Path, tmp_path: Path, sampling: str, n_frames: int) -> None:
     result = run_pipeline(synthetic_clip, out_root=tmp_path, sampling=sampling, job_id="job1", with_report=False)
     job_dir = tmp_path / "job1"
 

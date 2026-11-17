@@ -38,14 +38,35 @@ needs_stack = pytest.mark.skipif(
 def bus_clip(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """4 s video of the bundled bus.jpg (people + a bus), so YOLO has something to find."""
     out = tmp_path_factory.mktemp("clips") / "bus.mp4"
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-loop", "1", "-i", str(BUS), "-t", "4", "-r", "25",
-                    "-vf", "scale=-2:720", "-pix_fmt", "yuv420p", str(out)], check=True)
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-loglevel",
+            "error",
+            "-loop",
+            "1",
+            "-i",
+            str(BUS),
+            "-t",
+            "4",
+            "-r",
+            "25",
+            "-vf",
+            "scale=-2:720",
+            "-pix_fmt",
+            "yuv420p",
+            str(out),
+        ],
+        check=True,
+    )
     return out
 
 
 @pytest.fixture
 def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClient]:
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+
     def fake_report(cands, *args, **kwargs):
         return IncidentReport(summary=f"{len(cands)} candidates", incidents=[]), "fake"
 
@@ -57,8 +78,9 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestClie
 
 def upload(client: TestClient, path: Path, name: str | None = None) -> "object":
     with path.open("rb") as f:
-        return client.post("/jobs", files={"video": (name or path.name, f, "video/mp4")},
-                           data={"start_time": "2026-11-16T23:30:00"})
+        return client.post(
+            "/jobs", files={"video": (name or path.name, f, "video/mp4")}, data={"start_time": "2026-11-16T23:30:00"}
+        )
 
 
 @needs_stack
@@ -131,14 +153,17 @@ def test_report_409_while_running(client: TestClient) -> None:
             conn.execute("DELETE FROM jobs WHERE id = %s", (job_id,))
 
 
-@pytest.mark.parametrize(("status", "failed_stage", "states", "progress"), [
-    ("queued", None, ["pending"] * 4, 0.0),
-    ("ingesting", None, ["running", "pending", "pending", "pending"], 0.0),
-    ("reporting", None, ["done", "done", "done", "running"], 0.75),
-    ("done", None, ["done"] * 4, 1.0),
-    ("failed", "detecting", ["done", "done", "failed", "pending"], 0.5),
-    ("failed", None, ["failed", "pending", "pending", "pending"], 0.0),
-])
+@pytest.mark.parametrize(
+    ("status", "failed_stage", "states", "progress"),
+    [
+        ("queued", None, ["pending"] * 4, 0.0),
+        ("ingesting", None, ["running", "pending", "pending", "pending"], 0.0),
+        ("reporting", None, ["done", "done", "done", "running"], 0.75),
+        ("done", None, ["done"] * 4, 1.0),
+        ("failed", "detecting", ["done", "done", "failed", "pending"], 0.5),
+        ("failed", None, ["failed", "pending", "pending", "pending"], 0.0),
+    ],
+)
 def test_stage_progress(status: str, failed_stage: str | None, states: list[str], progress: float) -> None:
     got_progress, stages = stage_progress(status, failed_stage)
     assert [s.state for s in stages] == states and got_progress == progress
@@ -167,8 +192,7 @@ def test_runner_limits_concurrency(monkeypatch: pytest.MonkeyPatch, tmp_path: Pa
     monkeypatch.setattr(run, "run_with_db", fake_run)
     pool = type("FakePool", (), {"connection": lambda self: contextlib.nullcontext()})()
     runner = JobRunner(pool, tmp_path, max_concurrent=1)
-    threads = [threading.Thread(target=runner.process, args=(f"j{i}", tmp_path / f"u{i}" / "v.mp4"))
-               for i in range(4)]
+    threads = [threading.Thread(target=runner.process, args=(f"j{i}", tmp_path / f"u{i}" / "v.mp4")) for i in range(4)]
     for t in threads:
         t.start()
     for t in threads:

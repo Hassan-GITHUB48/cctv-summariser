@@ -72,8 +72,7 @@ def build_payload(candidates: list[Candidate], meta: dict, sampling: dict) -> di
     return {
         "video": {"duration_s": round(meta["duration_s"], 1), "sampling": sampling},
         "candidates": [
-            {k: v for k, v in c.to_dict().items() if k != "frame_path" and v is not None}
-            for c in candidates
+            {k: v for k, v in c.to_dict().items() if k != "frame_path" and v is not None} for c in candidates
         ],
     }
 
@@ -129,8 +128,10 @@ def generate_report(
     prompt = "Candidate incidents (JSON):\n" + json.dumps(build_payload(candidates, meta, sampling), indent=1)
     error: Exception | None = None
     for attempt in (1, 2):
-        attempt_prompt = prompt if error is None else (
-            f"{prompt}\n\nA previous attempt was rejected: {error}\nFix this in your answer."
+        attempt_prompt = (
+            prompt
+            if error is None
+            else (f"{prompt}\n\nA previous attempt was rejected: {error}\nFix this in your answer.")
         )
         try:
             report = _call_llm(client, model, attempt_prompt)

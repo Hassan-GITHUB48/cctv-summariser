@@ -21,10 +21,10 @@ class Candidate:
     label: str
     start_s: float
     end_s: float
-    keyframes: int              # keyframes in the window where the label was detected
-    max_count: int              # most instances of the label seen in a single frame
+    keyframes: int  # keyframes in the window where the label was detected
+    max_count: int  # most instances of the label seen in a single frame
     peak_confidence: float
-    frame_path: str             # frame with the highest-confidence detection
+    frame_path: str  # frame with the highest-confidence detection
     flags: list[str] = field(default_factory=list)
     wall_start: str | None = None
     wall_end: str | None = None
@@ -82,9 +82,14 @@ def group_events(
             dets = [d for t in run for d in frames[t]]
             best = max(dets, key=lambda d: d["confidence"])
             c = Candidate(
-                id="", label=label, start_s=run[0], end_s=run[-1], keyframes=len(run),
+                id="",
+                label=label,
+                start_s=run[0],
+                end_s=run[-1],
+                keyframes=len(run),
                 max_count=max(len(frames[t]) for t in run),
-                peak_confidence=best["confidence"], frame_path=best["frame_path"],
+                peak_confidence=best["confidence"],
+                frame_path=best["frame_path"],
             )
             if label == "person" and c.duration_s >= loiter_s:
                 c.flags.append("prolonged_presence")
