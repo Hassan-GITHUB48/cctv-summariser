@@ -63,3 +63,10 @@ def test_save_report_upserts(conn: psycopg.Connection, job_id: str) -> None:
     db.save_report(conn, job_id, "m2", "second", [{"title": "x"}])
     report = db.get_report(conn, job_id)
     assert (report["model"], report["summary"], report["incidents"]) == ("m2", "second", [{"title": "x"}])
+
+
+def test_fail_interrupted_jobs(conn: psycopg.Connection, job_id: str) -> None:
+    db.update_job(conn, job_id, status="detecting")
+    assert db.fail_interrupted_jobs(conn) >= 1
+    job = db.get_job(conn, job_id)
+    assert job["status"] == "failed" and "restart" in job["error"]

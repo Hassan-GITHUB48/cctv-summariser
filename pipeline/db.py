@@ -55,6 +55,16 @@ def update_job(conn: psycopg.Connection, job_id: str, **fields: Any) -> None:
     conn.commit()
 
 
+def fail_interrupted_jobs(conn: psycopg.Connection) -> int:
+    """Mark jobs left mid-pipeline (e.g. by a server restart) as failed; returns how many."""
+    cur = conn.execute(
+        "UPDATE jobs SET status = 'failed', error = 'Interrupted by server restart', updated_at = now()"
+        " WHERE status NOT IN ('done', 'failed')"
+    )
+    conn.commit()
+    return cur.rowcount
+
+
 def insert_events(conn: psycopg.Connection, job_id: str, events: list[dict]) -> int:
     """Replace all events for ``job_id`` with ``events`` (dicts from ``Event.to_dict``)."""
     with conn.transaction():

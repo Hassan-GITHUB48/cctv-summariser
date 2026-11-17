@@ -104,12 +104,16 @@ def run_pipeline(
     return result
 
 
-def run_with_db(conn: psycopg.Connection, job_id: str, video: Path, **kwargs) -> dict:
+def run_with_db(
+    conn: psycopg.Connection, job_id: str, video: Path, create_job: bool = True, **kwargs
+) -> dict:
     """Run the pipeline as a tracked job: status updates, then events and report persisted.
 
+    Pass ``create_job=False`` when the job row already exists (e.g. created by the API).
     On any failure the job is marked ``failed`` with the error message and the exception re-raised.
     """
-    db.create_job(conn, job_id, str(video))
+    if create_job:
+        db.create_job(conn, job_id, str(video))
     try:
         result = run_pipeline(
             video, job_id=job_id, on_status=lambda s: db.update_job(conn, job_id, status=s), **kwargs
