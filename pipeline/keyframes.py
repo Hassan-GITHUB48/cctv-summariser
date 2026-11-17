@@ -12,7 +12,7 @@ from scenedetect import ContentDetector, detect
 
 log = logging.getLogger(__name__)
 
-SamplingMode = Literal["scene", "interval"]
+SamplingMode = Literal["scene", "interval", "hybrid"]
 
 
 @dataclass(frozen=True)
@@ -46,6 +46,36 @@ def interval_frame_indices(fps: float, frame_count: int, interval_s: float) -> l
     return list(range(0, frame_count, step))
 
 
+def fill_gaps(indices: list[int], frame_count: int, max_gap: int) -> list[int]:
+    """Insert extra indices so no two consecutive samples (or video start/end) are > ``max_gap`` apart.
+
+    Used by hybrid mode: scene cuts give frames where content changes, and gap
+    filling guarantees coverage of long static shots (e.g. a fixed CCTV camera).
+    """
+    if max_gap < 1:
+        raise ValueError("max_gap must be at least 1 frame")
+    out: list[int] = []
+    last = -max_gap  # virtual sample before the start, so frame 0 gets covered
+    for target in sorted(set(indices)):
+        while target - last > max_gap:
+            last += max_gap
+            out.append(last)
+        out.append(target)
+        last = target
+    while frame_count - 1 - last > max_gap:  # cover the tail after the final scene frame
+        last += max_gap
+        out.append(last)
+    return out
+
+
+def _fps_and_count(video: Path) -> tuple[float, int]:
+    cap = cv2.VideoCapture(str(video))
+    try:
+        return cap.get(cv2.CAP_PROP_FPS), int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    finally:
+        cap.release()
+
+
 def save_frames(video: Path, indices: list[int], out_dir: Path) -> list[Keyframe]:
     """Decode the given frame indices from ``video`` and save them as JPEGs."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -72,18 +102,24 @@ def save_frames(video: Path, indices: list[int], out_dir: Path) -> list[Keyframe
 def extract(
     video: Path,
     out_dir: Path,
-    mode: SamplingMode = "scene",
+    mode: SamplingMode = "hybrid",
     interval_s: float = 2.0,
     threshold: float = 27.0,
+    max_gap_s: float = 2.0,
 ) -> list[Keyframe]:
-    """Select frames from ``video`` with the chosen sampling mode and save them to ``out_dir``."""
+    """Select frames from ``video`` with the chosen sampling mode and save them to ``out_dir``.
+
+    - ``scene``: one frame per detected scene.
+    - ``interval``: one frame every ``interval_s`` seconds.
+    - ``hybrid``: scene frames plus gap filling so samples are at most ``max_gap_s`` apart.
+    """
     if mode == "scene":
         indices = scene_frame_indices(video, threshold)
     elif mode == "interval":
-        cap = cv2.VideoCapture(str(video))
-        fps, count = cap.get(cv2.CAP_PROP_FPS), int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        cap.release()
-        indices = interval_frame_indices(fps, count, interval_s)
+        indices = interval_frame_indices(*_fps_and_count(video), interval_s)
+    elif mode == "hybrid":
+        fps, count = _fps_and_count(video)
+        indices = fill_gaps(scene_frame_indices(video, threshold), count, max(1, round(fps * max_gap_s)))
     else:
         raise ValueError(f"Unknown sampling mode: {mode}")
     keyframes = save_frames(video, indices, out_dir)

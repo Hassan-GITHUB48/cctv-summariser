@@ -1,7 +1,7 @@
 """CLI that chains ingest -> keyframes -> detect and writes output/<job_id>/events.json.
 
 Usage:
-    python -m pipeline.run samples/clip.mp4 --sampling scene|interval
+    python -m pipeline.run samples/clip.mp4 [--sampling hybrid|scene|interval]
 """
 
 from __future__ import annotations
@@ -34,8 +34,9 @@ def timed(timings: dict[str, float], stage: str) -> Iterator[None]:
 def run_pipeline(
     video: Path,
     out_root: Path = Path("output"),
-    sampling: keyframes.SamplingMode = "scene",
+    sampling: keyframes.SamplingMode = "hybrid",
     interval_s: float = 2.0,
+    max_gap_s: float = 2.0,
     conf: float = 0.4,
     device: str | None = None,
     job_id: str | None = None,
@@ -49,7 +50,9 @@ def run_pipeline(
         meta = ingest.probe(video)
         normalised = ingest.transcode(video, job_dir / "normalised.mp4")
     with timed(timings, "keyframes"):
-        frames = keyframes.extract(normalised, job_dir / "frames", sampling, interval_s)
+        frames = keyframes.extract(
+            normalised, job_dir / "frames", sampling, interval_s=interval_s, max_gap_s=max_gap_s
+        )
     with timed(timings, "detect"):
         events = detect.detect(frames, conf=conf, device=device)
 
@@ -57,7 +60,11 @@ def run_pipeline(
         "job_id": job_id,
         "source": str(video),
         "source_meta": meta.to_dict(),
-        "sampling": {"mode": sampling, "interval_s": interval_s if sampling == "interval" else None},
+        "sampling": {
+            "mode": sampling,
+            "interval_s": interval_s if sampling == "interval" else None,
+            "max_gap_s": max_gap_s if sampling == "hybrid" else None,
+        },
         "conf_threshold": conf,
         "timings_s": timings,
         "keyframes": [k.to_dict() for k in frames],
@@ -88,8 +95,9 @@ def print_summary(result: dict, out_root: Path) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the CCTV analytics pipeline on a video.")
     parser.add_argument("video", type=Path)
-    parser.add_argument("--sampling", choices=["scene", "interval"], default="scene")
+    parser.add_argument("--sampling", choices=["hybrid", "scene", "interval"], default="hybrid")
     parser.add_argument("--interval", type=float, default=2.0, help="seconds between frames (interval mode)")
+    parser.add_argument("--max-gap", type=float, default=2.0, help="max seconds between frames (hybrid mode)")
     parser.add_argument("--conf", type=float, default=0.4, help="detection confidence threshold")
     parser.add_argument("--device", default=None, help="torch device, e.g. cpu or mps (default: auto)")
     parser.add_argument("--out", type=Path, default=Path("output"))
@@ -99,7 +107,9 @@ def main() -> None:
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     logging.getLogger("pyscenedetect").setLevel(args.log_level.upper())  # it logs INFO by default
     try:
-        result = run_pipeline(args.video, args.out, args.sampling, args.interval, args.conf, args.device)
+        result = run_pipeline(
+            args.video, args.out, args.sampling, args.interval, args.max_gap, args.conf, args.device
+        )
     except ingest.IngestError as exc:
         raise SystemExit(f"Error: {exc}") from exc
     print_summary(result, args.out)
