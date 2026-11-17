@@ -1,0 +1,15 @@
+{
+  "description": "LLM report-stage latency per model on identical input (7 candidate incidents from samples/person-bicycle-car.mp4, hybrid sampling, max gap 2s, --start-time 2026-11-16T23:58:40). Collected in Phase 2; to be folded into the Phase 5 benchmarks.",
+  "date": "2026-11-17",
+  "machine": "Apple M4, macOS (Darwin 25.6.0), Python 3.11.18, anthropic SDK 2.9.0",
+  "settings": {"max_tokens": 16000, "structured_output": "IncidentReport (Pydantic)", "fallbacks": "default", "effort": "model default"},
+  "full_pipeline_runs": {
+    "claude-opus-5-5": {"job_id": "3fcc6c89", "report_s": 9.613, "total_s": 11.96, "incidents": 4},
+    "claude-sonnet-5-5": {"job_id": "4203a601", "report_s": 7.24, "total_s": 9.64, "incidents": 4}
+  },
+  "repeated_report_stage_only": {
+    "claude-opus-5-5": {"runs_s": [8.36, 7.93, 7.88], "median_s": 7.93, "incidents": [4, 4, 4]},
+    "claude-sonnet-5-5": {"runs_s": [7.36, 6.89, 6.85], "median_s": 6.89, "incidents": [4, 4, 4]}
+  },
+  "notes": "Network/API latency dominates and varies between runs; single full-pipeline runs overstate the gap. Medians of 3 back-to-back runs: Sonnet 5.5 is ~13% faster (1.04s)."
+}
